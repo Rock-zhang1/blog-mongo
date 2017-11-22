@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html>
+	<head>
+		<meta charset="UTF-8">
+		<title>画板</title>
+		<link rel="shortcut icon" href="/public/favicon.ico"/>
+		<link rel="bookmark"” href="/public/favicon.ico"/>
+		<link href="/public/fontAwesome/css/font-awesome.min.css" rel="stylesheet" type="text/css">
+		<!-- <link rel="stylesheet" href="/public/css/bootstrap-theme.min.css"> -->
+		<link rel="stylesheet" href="/public/css/bootstrap.min.css">
+		<style>
+			*{
+				margin: 0;
+				padding: 0;
+			}
+			html,body{
+				width: 100%;
+				height: 100%;
+				overflow: hidden;
+			}
+			body{
+				/*background-color: #000;*/
+			}
+			#draw{
+				background-color: #fff;
+			}
+			.type{
+				width: 100%;
+				height: 45px;
+				background-color: #f2f2f2;
+				display: flex;
+				justify-content: space-around;
+				padding-top: 5px;
+				-webkit-user-select: none;
+			}
+			.type h3{
+				width: 200px;		
+				display: flex;
+				font-size: 16px;
+				line-height: 0px;
+			}
+			.type h3>b{
+				flex-shrink: 0;
+			}
+			.type h3>input{
+				margin-top: -10px;
+				margin-left: 5px;
+			}
+			.type p *{
+				position: relative;
+			}
+			.type p span{
+				display: inline-block;
+				width: 20px;
+				height: 20px;
+				border-radius: 50%;
+				top: 5px;
+				margin: 0 5px;
+			}
+			.color:before{
+				content: '';
+				width: 6px;
+				height: 6px;
+				border-radius: 50%;
+				background-color: #000;
+				position: absolute;
+				bottom: -12px;
+				left: calc(50% - 3px);
+			}
+			.type p input{
+				margin-top: -10px;
+			}
+			.type h3 b{
+				position: relative;
+			}
+			.box{
+				position: fixed;
+				border: 1px solid #000;
+			}
+			.inamebtn {
+				position: fixed;
+				bottom: 30px;
+				right: 30px;
+				background: rgba(255,255,255,0.6);
+				width: 80px;
+				height: 80px;
+				color: #323232;
+				font-size: 30px;
+				font-family: '微软雅黑';
+				text-align: center;
+				overflow: hidden;
+				font-weight: 100;
+				border: 1px solid rgba(50,50,50,0.8);
+				cursor: pointer;
+				border-radius: 50px;
+				outline: none;
+			}
+		</style>
+		
+	</head>
+	<body>
+		<div class="wrap">
+			<!--<div class="box"></div>-->
+			<div class="type">
+				<h3>
+					<b>画笔粗细</b><span>1</span>
+					<input type="range" id="brush" min="1" max="100" value="1"/>
+				</h3>
+				<p>
+					<span class="color" color="black" style="background: black;"></span>
+					<span color="red" style="background: red;"></span>
+					<span color="green" style="background: green;"></span>
+					<span color="blue" style="background: blue;"></span>
+					<input type="color" value="" />
+				</p>
+				<h3>
+					<b>橡皮擦</b><span>100</span>
+					<input type="range" id="rubber" max="100" min="2" value="100" />
+				</h3>
+			</div>
+			<canvas id="draw" width="100%" height="100%">
+				<span>此浏览器不支持canvas</span>
+			</canvas>
+			<button id="downloadpainter" name="downloadpainter" class="inamebtn" title="下载作品" >
+				<span class="glyphicon glyphicon-download-alt"></span>
+			</button>
+		</div>
+
+		<script src="/public/js/jquery-2.1.1.min.js"></script>
+		<script type="text/javascript">
+			window.onload = function(){
+				var draw = document.getElementById('draw');
+				var crx = draw.getContext('2d');
+				var color,brush,rubber;
+				// 将画布全屏
+				$('#draw').attr({'width':$(window).width(),'height':$(window).height()})
+				
+				// 选择颜色
+				$('.type p').on('click','*',function(){
+					$('.color').removeClass('color');
+					$(this).addClass('color').siblings().removeClass('color');
+				})
+				// 选择画笔粗细
+				$('#brush').on('change',function(){
+					brush = $(this).val();
+					$(this).prev().text(brush)
+				})
+				// 选择橡皮擦粗细
+				$('#rubber').on('change',function(){
+					rubber = $(this).val();
+					$(this).prev().text(rubber)
+				})
+				// 选择橡皮擦
+				$('#rubber').siblings('b').on('click',function(){
+					$('.color').removeClass('color');
+					$(this).addClass('color');
+				})	
+				
+				draw.onmousedown = function(ev){
+					// 如果是画笔工具
+					if($('.color').parent().is("p")){
+						drawFn();
+					// 如果是橡皮擦工具
+					}else{
+						rubberFn();
+					}
+				}
+
+				// 下载
+				$('#downloadpainter').click(function(){
+					downloadpainter();
+				})
+
+
+				// 橡皮擦工具
+				function rubberFn(){
+					var ev = ev || event;
+					// 新建边框盒子  让橡皮擦可视化
+					var box = $('<div class="box"></div>');
+					box.appendTo($('.wrap'));
+					var rubberW = $('#rubber').val();
+					box.width(rubberW).height(rubberW)
+					$('.box').css({'left':ev.pageX-(rubberW/2),'top':ev.pageY-rubberW/2});
+					document.onmousemove = function(ev){
+						var ev = ev || event;
+						// 移动位置改变
+						$('.box').css({'left':ev.pageX-(rubberW/2),'top':ev.pageY-rubberW/2});
+						crx.clearRect(ev.pageX-(rubberW/2),ev.pageY-rubberW/2-50,rubberW,rubberW)
+					}
+					document.onmouseup = function(){
+						box.remove();
+						document.onmousemove = null;
+						document.onmouseup = null;
+					}
+				}
+				
+				// 画笔工具
+				function drawFn(){
+					var ev = ev || event;
+					// 获取颜色
+					if($('.color').attr('color')){
+						color = $('.color').attr('color');
+					}else{
+						color = $('.color').val();
+					}
+					// 开始绘画
+					crx.beginPath();
+					crx.moveTo(ev.pageX-draw.offsetLeft,ev.pageY-draw.offsetTop);
+					draw.onmousemove = function(ev){
+						var ev = ev || event;
+						crx.lineTo(ev.pageX-draw.offsetLeft,ev.pageY-draw.offsetTop);
+						crx.strokeStyle = color;
+						crx.lineWidth = brush;
+						crx.stroke();
+					}
+					document.onmouseup = function(){
+						draw.onmousemove = null;
+						draw.onmouseup = null;
+					}
+				}
+
+				// 下载自己的作品
+				function downloadpainter(){
+					var type = 'png';
+					var imgData = draw.toDataURL(type);
+					var _fixType = function(type) {
+						type = type.toLowerCase().replace(/jpg/i, 'jpeg');
+						var r = type.match(/png|jpeg|bmp|gif/)[0];
+						return 'image/' + r;
+					};
+					
+					// 加工image data，替换mime type
+					imgData = imgData.replace(_fixType(type),'image/octet-stream');
+					var saveFile = function(data, filename){
+						var save_link = document.createElementNS('http://www.w3.org/1999/xhtml', 'a');
+						save_link.href = data;
+						save_link.download = filename;
+					
+						var event = document.createEvent('MouseEvents');
+						event.initMouseEvent('click', true, false, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+						save_link.dispatchEvent(event);
+					};
+					
+					// 下载后的问题名
+					var filename = 'Rock_' + (new Date()).getTime() + '.' + type;
+					// download
+					saveFile(imgData,filename);
+				}
+			}
+		</script>
+	</body>
+</html>

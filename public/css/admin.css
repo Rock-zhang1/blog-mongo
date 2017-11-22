@@ -1,0 +1,8 @@
+.form-group textarea{
+    resize: vertical;
+}
+
+/* 文章预览 */
+#content_views >div{
+    width: 680px;
+}
